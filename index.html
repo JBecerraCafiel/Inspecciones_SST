@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inspección Preoperacional de Vehículos y Equipos V3 - Autopistas del Nordeste</title>
+    <title>Inspeccion preoperacional de Vehículos y Equipos - Autopistas del Nordeste</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -28,7 +28,7 @@
         .item-text { font-size: 13px; font-weight: 500; color: #334155; width: 60%; }
         .btn-group { display: flex; gap: 6px; width: 40%; justify-content: flex-end; }
         
-        .btn-status { flex: 1; padding: 8px 0; border: 1px solid #cbd5e1; background: white; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; }
+        .btn-status { flex: 1; padding: 8px 0; border: 1px solid #cbd5e1; background: white; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; transition: all 0.2s; }
         .btn-status.good.active { background: var(--success); color: white; border-color: var(--success); }
         .btn-status.bad.active { background: var(--danger); color: white; border-color: var(--danger); }
         .btn-status.na.active { background: #64748b; color: white; border-color: #64748b; }
@@ -37,8 +37,7 @@
         canvas { width: 100%; height: 150px; display: block; touch-action: none; }
         .btn-clear { background: #e2e8f0; color: #475569; border: none; padding: 8px 12px; border-radius: 4px; margin-top: 8px; cursor: pointer; font-size: 12px; font-weight: bold; width: 100%; }
         
-        .btn-submit { width: 100%; background: var(--accent); color: white; border: none; padding: 16px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 25px; display: block; text-align: center; text-decoration: none;}
-        .btn-onedrive { background-color: #107c41; display: none; margin-top: 15px; } /* Color oficial de Microsoft */
+        .btn-submit { width: 100%; background: var(--accent); color: white; border: none; padding: 16px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 25px; display: block; text-align: center; transition: background 0.3s;}
     </style>
 </head>
 <body>
@@ -66,13 +65,11 @@
     <div class="signature-container"><canvas id="signature-pad"></canvas></div>
     <button class="btn-clear" onclick="clearCanvas()">Limpiar Firma</button>
 
-    <button class="btn-submit" id="btn-generar" onclick="exportarReporteNativoPDF()">1. Generar y Descargar PDF</button>
-    
-    <a href="https://autopistasdelnordeste-my.sharepoint.com/:f:/g/personal/coordinadorhseq_autopistasdelnordeste_com_co/IgDVdg3a9w1lRLYNd21PmATLAdvd9dUazdpFMYfrk_XN59Q" target="_blank" class="btn-submit btn-onedrive" id="btn-onedrive">2. Sincronizar Reporte a OneDrive</a>
+    <button class="btn-submit" id="btn-generar" onclick="exportarReporteNativoPDF()">Enviar Reporte al Servidor SST</button>
 </div>
 
 <script>
-     const estructuraFormato = [
+    const estructuraFormato = [
         { categoria: "A. DOCUMENTACIÓN", items: ["1. Tarjeta de propiedad del vehículo", "2. Licencia de conducción", "3. SOAT", "4. Revisión Técnico-Mecánica"] },
         { categoria: "B. SISTEMA MOTOR", items: ["5. Presencia de fugas de fluidos o daños", "6. Niveles de aceite motor", "7. Nivel de refrigerante", "8. Estado de baterías", "9. Conexiones y estado de cables, mangueras, correa", "10. Estado del mofle/exosto"] },
         { categoria: "C. SISTEMA LUCES", items: ["11. Delantera (Alta, medias, baja)", "12. Trasera", "13. Direccionales", "14. Estacionarias", "15. Reversa", "16. Freno", "17. Baliza"] },
@@ -83,6 +80,7 @@
         { categoria: "H. ELEMENTOS DE DESGASTE", items: ["43. Estado del balde/cucharon", "44. Estado de los dientes", "45. Estado de la cuchilla", "46. Estado de ganchos (izajes y carga)", "47. Puntos de lubricacion y engrase"] },
         { categoria: "I. ELEMENTOS DE SEGURIDAD", items: ["48. Extintor", "49. Botiquin primeros auxilios, kit de derrame", "50. Kit de carretera"] }
     ];
+
 
     const contenedor = document.getElementById('contenedor-items');
     estructuraFormato.forEach(bloque => {
@@ -135,13 +133,18 @@
 
         if (incompleto) { alert('⚠️ Debe evaluar los 30 ítems antes de emitir el reporte.'); return; }
 
+        // Cambiamos el estado del botón a "Cargando"
+        const btn = document.getElementById('btn-generar');
+        btn.innerText = "⏳ Encriptando y Enviando...";
+        btn.style.backgroundColor = "#eab308"; // Amarillo de proceso
+        btn.disabled = true;
+
         const { jsPDF } = window.jspdf; const doc = new jsPDF('p', 'mm', 'letter');
         
-        // INYECCIÓN DEL LOGO
         try {
             const logoBase = document.getElementById('logo-empresa');
             doc.addImage(logoBase, 'PNG', 14, 10, 42, 16);
-        } catch (e) { console.warn('Aviso: Asegúrate de tener la imagen subida en el servidor.'); }
+        } catch (e) { console.warn('Aviso: Imagen no cargada.'); }
 
         doc.setFont("helvetica", "bold"); doc.setFontSize(14); doc.text("AUTOPISTAS DEL NORDESTE S.A.S.", 105, 15, { align: 'center' });
         doc.setFontSize(11); doc.text("INSPECCIÓN DIARIA DE VEHÍCULOS Y EQUIPOS", 105, 22, { align: 'center' });
@@ -168,13 +171,31 @@
         doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.text(conductor.toUpperCase(), 20, finalY + 30);
         doc.setFont("helvetica", "normal"); doc.text(`C.C: ${cedula}`, 20, finalY + 34); doc.text("Operador / Conductor Responsable", 20, finalY + 38);
 
-        // Guardar físicamente en el celular
-        doc.save(`Inspeccion_Preoperacional_${placa.toUpperCase()}_${fecha.replace(/[\/\s:,]+/g, '-')}.pdf`);
-        
-        // Habilitar botón de subida a OneDrive
-        document.getElementById('btn-onedrive').style.display = 'block';
-        document.getElementById('btn-generar').innerText = "✓ PDF Descargado";
-        document.getElementById('btn-generar').style.backgroundColor = "#64748b";
+        // EXTRAER EL PDF EN MODO INVISIBLE Y PREPARAR LA CARGA
+        const pdfDataUri = doc.output('datauristring');
+        const nombreArchivo = `Inspeccion_preoperacional_${placa.toUpperCase()}_${fecha.replace(/[\/\s:,]+/g, '-')}.pdf`;
+
+        // EL MOTOR DE ENVÍO DIRECTO AL SERVIDOR (REEMPLAZA LA URL AQUÍ)
+        const URL_GOOGLE_SCRIPT = "https://script.google.com/macros/s/AKfycbzABPG3eD791rn2HlmCSzhVZimTPXDOus-WWEMT3mSYFl2Cp5GdZfyVxo_0nQzSV7-UmA/exec";
+
+        fetch(URL_GOOGLE_SCRIPT, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({ fileName: nombreArchivo, fileContent: pdfDataUri })
+        })
+        .then(response => {
+            btn.innerText = "✅ Reporte Enviado a SST";
+            btn.style.backgroundColor = "#16a34a"; // Verde de éxito
+            alert("Inspección certificada y guardada directamente en el servidor de control.");
+            // Recargar la página en 3 segundos para el próximo vehículo
+            setTimeout(() => location.reload(), 3000);
+        })
+        .catch(error => {
+            alert("⚠️ Error de conexión con el servidor. Verifique su señal.");
+            btn.innerText = "Reintentar Envío";
+            btn.style.backgroundColor = "#dc2626"; // Rojo de error
+            btn.disabled = false;
+        });
     }
 </script>
 </body>
