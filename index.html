@@ -169,7 +169,7 @@
         doc.setFont("helvetica", "normal"); doc.text(`C.C: ${cedula}`, 20, finalY + 34); doc.text("Operador / Conductor Responsable", 20, finalY + 38);
 
         // Guardar físicamente en el celular
-        doc.save(`Inspeccion_Preoperacional_${placa.toUpperCase()}${fecha.replace(/[\/\s:,]+/g, '-')}.pdf`);
+        doc.save(`Inspeccion_Preoperacional_${placa.toUpperCase()}_${fecha.replace(/[\/\s:,]+/g, '-')}.pdf`);
         
         // Habilitar botón de subida a OneDrive
         document.getElementById('btn-onedrive').style.display = 'block';
