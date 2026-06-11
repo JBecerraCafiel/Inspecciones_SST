@@ -173,7 +173,7 @@
 
         // EXTRAER EL PDF EN MODO INVISIBLE Y PREPARAR LA CARGA
         const pdfDataUri = doc.output('datauristring');
-        const nombreArchivo = `Inspeccion_preoperacional_${placa.toUpperCase()}_${fecha.replace(/[\/\s:,]+/g, '-')}.pdf`;
+        const nombreArchivo = `Preop_${placa.toUpperCase()}_${fecha.replace(/[\/\s:,]+/g, '-')}.pdf`;
 
         // EL MOTOR DE ENVÍO DIRECTO AL SERVIDOR (REEMPLAZA LA URL AQUÍ)
         const URL_GOOGLE_SCRIPT = "https://script.google.com/macros/s/AKfycbzABPG3eD791rn2HlmCSzhVZimTPXDOus-WWEMT3mSYFl2Cp5GdZfyVxo_0nQzSV7-UmA/exec";
