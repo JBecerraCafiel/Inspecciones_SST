@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inspeccion preoperacional de Vehículos y Equipos - Autopistas del Nordeste</title>
+    <title>Inspeccion preoperacional de Vehículos y Equipos - Autopistas del Nordeste S.A.S.</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -52,7 +52,8 @@
     
     <div class="form-group"><label>Fecha y Hora del Sistema</label><input type="text" id="fecha_hora" readonly></div>
     <div class="form-group"><label>Geolocalización (GPS)</label><input type="text" id="gps" value="Obteniendo coordenadas..." readonly></div>
-    <div class="form-group"><label>Placa del Vehículo</label><input type="text" id="placa" placeholder="Ej. ABC-123" style="text-transform: uppercase;"></div>
+    <div class="form-group"><label>Placa del Vehículo (sin guiones o puntos)</label><input type="text" id="placa" placeholder="Ej. ABC123" style="text-transform: uppercase;"></div>
+    <div class="form-group"><label>Kilometraje / Horómetro</label><input type="text" id="kms_horas" placeholder="Ingrese kilometraje / horas"></div>
     <div class="form-group"><label>Conductor / Operador</label><input type="text" id="conductor" placeholder="Nombre completo"></div>
     <div class="form-group"><label>Cédula de Ciudadanía</label><input type="text" id="cedula" placeholder="Número de documento"></div>
 
@@ -116,7 +117,7 @@
     function clearCanvas() { ctx.clearRect(0,0,canvas.width,canvas.height); }
 
     function exportarReporteNativoPDF() {
-        const placa = document.getElementById('placa').value.trim(); const conductor = document.getElementById('conductor').value.trim(); const cedula = document.getElementById('cedula').value.trim();
+        const placa = document.getElementById('placa').value.trim(); const kms_horas = document.getElementById('kms_horas').value.trim(); const conductor = document.getElementById('conductor').value.trim(); const cedula = document.getElementById('cedula').value.trim();
         const fecha = document.getElementById('fecha_hora').value; const gps = document.getElementById('gps').value; const obs = document.getElementById('observaciones').value || 'Ninguna novedad reportada en campo.';
 
         if (!placa || !conductor || !cedula) { alert('⚠️ Faltan datos críticos: Placa, Conductor o Cédula.'); return; }
@@ -154,6 +155,9 @@
 
         doc.setFontSize(10); doc.setFont("helvetica", "bold"); doc.text("FECHA/HORA:", 14, 40); doc.setFont("helvetica", "normal"); doc.text(fecha, 45, 40);
         doc.setFont("helvetica", "bold"); doc.text("PLACA/EQUIPO:", 14, 46); doc.setFont("helvetica", "normal"); doc.text(placa.toUpperCase(), 45, 46);
+
+        doc.setFont("helvetica", "bold"); doc.text("KILOMETRAJE/HORÓMETRO:", 34, 46); doc.setFont("helvetica", "normal"); doc.text(kms_horas.toUpperCase(), 65, 46);
+        
         doc.setFont("helvetica", "bold"); doc.text("CONDUCTOR:", 14, 52); doc.setFont("helvetica", "normal"); doc.text(`${conductor.toUpperCase()} (C.C: ${cedula})`, 45, 52);
         doc.setFont("helvetica", "bold"); doc.text("UBICACIÓN:", 14, 58); doc.setFont("helvetica", "normal"); doc.text(gps, 45, 58);
 
@@ -184,7 +188,7 @@
             body: JSON.stringify({ fileName: nombreArchivo, fileContent: pdfDataUri })
         })
         .then(response => {
-            btn.innerText = "✅ Reporte Enviado a SST";
+            btn.innerText = "✅ Reporte Enviado a coord. SST y Coord. Equipos";
             btn.style.backgroundColor = "#16a34a"; // Verde de éxito
             alert("Inspección certificada y guardada directamente en el servidor de control.");
             // Recargar la página en 3 segundos para el próximo vehículo
