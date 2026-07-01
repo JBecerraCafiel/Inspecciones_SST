@@ -52,7 +52,13 @@
     
     <div class="form-group"><label>Fecha y Hora del Sistema</label><input type="text" id="fecha_hora" readonly></div>
     <div class="form-group"><label>Geolocalización (GPS)</label><input type="text" id="gps" value="Obteniendo coordenadas..." readonly></div>
-    <div class="form-group"><label>Placa del Vehículo (sin guiones o puntos)</label><input type="text" id="placa" placeholder="Ej. ABC123" style="text-transform: uppercase;"></div>
+    
+    <!-- SE MODIFICÓ LA PLACA AQUÍ CON oninput -->
+    <div class="form-group">
+        <label>Placa del Vehículo (sin guiones o puntos)</label>
+        <input type="text" id="placa" placeholder="Ej. ABC123" style="text-transform: uppercase;" oninput="this.value = this.value.replace(/[^a-zA-Z0-9]/g, '')">
+    </div>
+
     <div class="form-group"><label>Kilometraje / Horómetro</label><input type="text" id="kms_horas" placeholder="Ingrese kilometraje / horas"></div>
     <div class="form-group"><label>Conductor / Operador</label><input type="text" id="conductor" placeholder="Nombre completo"></div>
     <div class="form-group"><label>Cédula de Ciudadanía</label><input type="text" id="cedula" placeholder="Número de documento"></div>
@@ -82,7 +88,6 @@
         { categoria: "I. ELEMENTOS DE SEGURIDAD", items: ["48. Extintor", "49. Botiquin primeros auxilios, kit de derrame", "50. Kit de carretera"] }
     ];
 
-
     const contenedor = document.getElementById('contenedor-items');
     estructuraFormato.forEach(bloque => {
         contenedor.innerHTML += `<div class="section-title">${bloque.categoria}</div>`;
@@ -105,26 +110,30 @@
         }
     };
 
-    const canvas = document.getElementById('signature-pad'); const ctx = canvas.getContext('2d'); let drawing = false;
+    const canvas = document.getElementById('signature-pad'); const ctx = canvas.getContext('2d'); let drawing = false; let tieneFirma = false;
     function resize() { canvas.width = canvas.parentElement.clientWidth; canvas.height = 150; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.strokeStyle = '#000'; }
     window.addEventListener('resize', resize); resize();
     function getPos(e) { const r = canvas.getBoundingClientRect(); return e.touches ? {x: e.touches[0].clientX - r.left, y: e.touches[0].clientY - r.top} : {x: e.offsetX, y: e.offsetY}; }
-    const start = (e) => { drawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); if(e.touches) e.preventDefault(); };
+    
+    const start = (e) => { drawing = true; tieneFirma = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); if(e.touches) e.preventDefault(); };
     const move = (e) => { if(!drawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); if(e.touches) e.preventDefault(); };
     const end = () => drawing = false;
     canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', move); canvas.addEventListener('mouseup', end);
     canvas.addEventListener('touchstart', start); canvas.addEventListener('touchmove', move); canvas.addEventListener('touchend', end);
-    function clearCanvas() { ctx.clearRect(0,0,canvas.width,canvas.height); }
+    
+    function clearCanvas() { ctx.clearRect(0,0,canvas.width,canvas.height); tieneFirma = false; }
 
     function exportarReporteNativoPDF() {
         const placa = document.getElementById('placa').value.trim(); const kms_horas = document.getElementById('kms_horas').value.trim(); const conductor = document.getElementById('conductor').value.trim(); const cedula = document.getElementById('cedula').value.trim();
         const fecha = document.getElementById('fecha_hora').value; const gps = document.getElementById('gps').value; const obs = document.getElementById('observaciones').value || 'Ninguna novedad reportada en campo.';
 
         if (!placa || !conductor || !cedula) { alert('⚠️ Faltan datos críticos: Placa, Conductor o Cédula.'); return; }
+        
+        if (!tieneFirma) { alert('⚠️ Debe firmar el reporte en la parte inferior antes de enviarlo.'); return; }
 
         let datosTabla = []; let incompleto = false;
         estructuraFormato.forEach(bloque => {
-            datosTabla.push([{ content: bloque.categoria, colSpan: 4, styles: { fillColor: [226, 232, 240], textColor: [15, 23, 42], fontStyle: 'bold' } }]);
+            datosTabla.push([{ content: bloque.categoria, colSpan: 4, styles: { fillColor: [226, 232, 240], textColor: [15, 23, 42], fontStyle: 'bold', cellPadding: 1.2 } }]);
             bloque.items.forEach(item => {
                 let divGrupo = document.querySelector(`[data-item="${item}"]`); let valor = divGrupo ? divGrupo.getAttribute('data-val') : null;
                 if (!valor) incompleto = true;
@@ -132,12 +141,11 @@
             });
         });
 
-        if (incompleto) { alert('⚠️ Debe evaluar los 30 ítems antes de emitir el reporte.'); return; }
+        if (incompleto) { alert('⚠️ Debe evaluar todos los ítems antes de emitir el reporte.'); return; }
 
-        // Cambiamos el estado del botón a "Cargando"
         const btn = document.getElementById('btn-generar');
         btn.innerText = "⏳ Encriptando y Enviando...";
-        btn.style.backgroundColor = "#eab308"; // Amarillo de proceso
+        btn.style.backgroundColor = "#eab308";
         btn.disabled = true;
 
         const { jsPDF } = window.jspdf; const doc = new jsPDF('p', 'mm', 'letter');
@@ -161,25 +169,23 @@
         doc.setFont("helvetica", "bold"); doc.text("CONDUCTOR:", 14, 52); doc.setFont("helvetica", "normal"); doc.text(`${conductor.toUpperCase()} (C.C: ${cedula})`, 45, 52);
         doc.setFont("helvetica", "bold"); doc.text("UBICACIÓN:", 14, 58); doc.setFont("helvetica", "normal"); doc.text(gps, 45, 58);
 
-        doc.autoTable({ startY: 65, head: [['ÍTEM EVALUADO SEGÚN FORMATO FR-OV-EQ-15', 'B', 'M', 'N/A']], body: datosTabla, theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }, headStyles: { fillColor: [15, 23, 42], textColor: [255,255,255], halign: 'center' }, columnStyles: { 0: { cellWidth: 120 }, 1: { halign: 'center', cellWidth: 15, fontStyle: 'bold' }, 2: { halign: 'center', cellWidth: 15, fontStyle: 'bold', textColor: [220, 38, 38] }, 3: { halign: 'center', cellWidth: 15, fontStyle: 'bold' } } });
+        doc.autoTable({ startY: 65, head: [['ÍTEM EVALUADO SEGÚN FORMATO FR-OV-EQ-15', 'B', 'M', 'N/A']], body: datosTabla, theme: 'grid', styles: { fontSize: 7.5, cellPadding: 1.2 }, headStyles: { fillColor: [15, 23, 42], textColor: [255,255,255], halign: 'center' }, columnStyles: { 0: { cellWidth: 120 }, 1: { halign: 'center', cellWidth: 15, fontStyle: 'bold' }, 2: { halign: 'center', cellWidth: 15, fontStyle: 'bold', textColor: [220, 38, 38] }, 3: { halign: 'center', cellWidth: 15, fontStyle: 'bold' } } });
 
-        let finalY = doc.lastAutoTable.finalY + 10;
-        if (finalY > 230) { doc.addPage(); finalY = 20; }
+        let finalY = doc.lastAutoTable.finalY + 6;
+        if (finalY > 235) { doc.addPage(); finalY = 15; }
 
-        doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.text("OBSERVACIONES DE CAMPO:", 14, finalY);
-        doc.setFont("helvetica", "normal"); let obsLineas = doc.splitTextToSize(obs, 180); doc.text(obsLineas, 14, finalY + 6);
+        doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.text("OBSERVACIONES DE CAMPO:", 14, finalY);
+        doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); let obsLineas = doc.splitTextToSize(obs, 180); doc.text(obsLineas, 14, finalY + 5);
         
-        finalY += (obsLineas.length * 5) + 15; if (finalY > 250) { doc.addPage(); finalY = 20; }
-        const firmaData = canvas.toDataURL("image/png"); doc.addImage(firmaData, 'PNG', 20, finalY, 60, 25);
-        doc.setLineWidth(0.5); doc.line(20, finalY + 25, 80, finalY + 25);
-        doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.text(conductor.toUpperCase(), 20, finalY + 30);
-        doc.setFont("helvetica", "normal"); doc.text(`C.C: ${cedula}`, 20, finalY + 34); doc.text("Operador / Conductor Responsable", 20, finalY + 38);
+        finalY += (obsLineas.length * 4) + 10; if (finalY > 240) { doc.addPage(); finalY = 15; }
+        const firmaData = canvas.toDataURL("image/png"); doc.addImage(firmaData, 'PNG', 20, finalY, 50, 18);
+        doc.setLineWidth(0.5); doc.line(20, finalY + 19, 70, finalY + 19);
+        doc.setFont("helvetica", "bold"); doc.setFontSize(8.5); doc.text(conductor.toUpperCase(), 20, finalY + 23);
+        doc.setFont("helvetica", "normal"); doc.text(`C.C: ${cedula}`, 20, finalY + 27); doc.text("Operador / Conductor Responsable", 20, finalY + 31);
 
-        // EXTRAER EL PDF EN MODO INVISIBLE Y PREPARAR LA CARGA
         const pdfDataUri = doc.output('datauristring');
         const nombreArchivo = `Preop_${placa.toUpperCase()}_${fecha.replace(/[\/\s:,]+/g, '-')}.pdf`;
 
-        // EL MOTOR DE ENVÍO DIRECTO AL SERVIDOR (REEMPLAZA LA URL AQUÍ)
         const URL_GOOGLE_SCRIPT = "https://script.google.com/macros/s/AKfycbzABPG3eD791rn2HlmCSzhVZimTPXDOus-WWEMT3mSYFl2Cp5GdZfyVxo_0nQzSV7-UmA/exec";
 
         fetch(URL_GOOGLE_SCRIPT, {
@@ -188,16 +194,17 @@
             body: JSON.stringify({ fileName: nombreArchivo, fileContent: pdfDataUri })
         })
         .then(response => {
-            btn.innerText = "✅ Reporte Enviado a coord. SST y Coord. Equipos";
-            btn.style.backgroundColor = "#16a34a"; // Verde de éxito
-            alert("Inspección certificada y guardada directamente en el servidor de control.");
-            // Recargar la página en 3 segundos para el próximo vehículo
+            doc.save(nombreArchivo);
+
+            btn.innerText = "✅ Reporte Enviado y Descargado";
+            btn.style.backgroundColor = "#16a34a";
+            alert("Inspección certificada, guardada directamente en el servidor de control y descargada en este dispositivo.");
             setTimeout(() => location.reload(), 3000);
         })
         .catch(error => {
             alert("⚠️ Error de conexión con el servidor. Verifique su señal.");
             btn.innerText = "Reintentar Envío";
-            btn.style.backgroundColor = "#dc2626"; // Rojo de error
+            btn.style.backgroundColor = "#dc2626";
             btn.disabled = false;
         });
     }
